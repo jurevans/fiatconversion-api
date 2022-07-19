@@ -74,9 +74,8 @@ def rates():
                 exchange_rates[token][fiat] = 0.123
 
         return jsonify({
-            'rates': exchange_rates,
+            'data': exchange_rates,
             'timestamp': getTimestamp(),
-            'success': True
         }) 
 
 @app.route('/health', methods=['GET'])

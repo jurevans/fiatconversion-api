@@ -56,6 +56,12 @@ REDIS_HOST=domain.of.redis
 
 # Redis port (if not default)
 REDIS_PORT=6379
+
+# Third-party API KEY
+THIRD_PARTY_KEY = os.environ.get('THIRD_PARTY_KEY')
+
+# Third-party API Base URL
+THIRD_PARTY_URL = 'https://api.coinlayer.com/' # Example
 ```
 
 [ [Table of Contents](#table-of-contents) ]
@@ -85,7 +91,7 @@ curl --request POST http://127.0.0.1:5000/rates --header "X-Api-Key:MY_SECRET_AP
 
 ```json
 {
-  "rates": {
+  "data": {
     "ATOM": {
       "EUR": 0.123,
       "USD": 0.123
@@ -103,7 +109,7 @@ curl --request POST http://127.0.0.1:5000/rates --header "X-Api-Key:MY_SECRET_AP
       "USD": 0.123
     }
   },
-  "success": true
+  "timestamp": 1658226274.168918
 }
 ```
 
