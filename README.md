@@ -76,6 +76,9 @@ The development
 
 ```bash
 curl --request POST http://127.0.0.1:5000/rates --header "X-Api-Key:MY_SECRET_API_KEY" --data "coins=BTC,EUR&currencies=USD,EUR,YEN"
+
+# Optionally, pipe it through jq for formatting JSON
+curl --request POST http://127.0.0.1:5000/rates --header "X-Api-Key:MY_SECRET_API_KEY" --data "coins=BTC,EUR&currencies=USD,EUR,YEN" | jq
 ```
 
 **SAMPLE OUTPUT**

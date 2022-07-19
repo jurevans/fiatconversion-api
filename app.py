@@ -4,6 +4,7 @@
 import json
 from flask import Flask, request, jsonify
 from healthcheck import HealthCheck, EnvironmentDump
+from datetime import datetime
 from config import Config
 
 app = Flask(__name__)
@@ -19,7 +20,7 @@ health.add_check(redis_available)
 
 def application_data():
     return {'maintainer': 'Justin R. Evans',
-            'git_repo': 'https://github.com/jurevans'}
+            'git_repo': 'https://github.com/jurevans/fiatconversion-api'}
 
 envdump.add_section('application', application_data)
 
@@ -32,6 +33,11 @@ def comma_separated_params_to_list(param):
         if val:
             result.append(val.strip())
     return result
+
+def getTimestamp():
+    return datetime.timestamp(datetime.now())
+
+# ROUTES
 
 @app.route('/', methods=['GET'])
 def index():
@@ -69,6 +75,7 @@ def rates():
 
         return jsonify({
             'rates': exchange_rates,
+            'timestamp': getTimestamp(),
             'success': True
         }) 
 
@@ -92,4 +99,4 @@ def env():
     else:
         return jsonify({'message': 'ERROR: Unauthorized'}), 401
 
-app.run(debug=True)
+app.run(host='0.0.0.0', port=5000, debug=False)
