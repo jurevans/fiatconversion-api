@@ -1,4 +1,4 @@
-# fiatconverter-api
+# fiatconversion-api
 
 This is a simple Rest API for caching fiat-conversion rates from a third-party API, and may potentially serve other useful data in the future.
 
