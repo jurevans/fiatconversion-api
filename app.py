@@ -10,6 +10,7 @@ from config import Config
 app = Flask(__name__)
 health = HealthCheck()
 envdump = EnvironmentDump()
+config = Config()
 
 def redis_available():
     client = _redis_client()
@@ -25,7 +26,7 @@ def application_data():
 envdump.add_section('application', application_data)
 
 def is_key_valid(key):
-    return key == Config.API_KEY
+    return key == config.API_KEY
 
 def comma_separated_params_to_list(param):
     result = []
@@ -61,12 +62,12 @@ def rates():
         if coins:
             tokens = comma_separated_params_to_list(coins)
         else:
-            tokens = Config.DEFAULT_TOKENS
+            tokens = config.tokens()
 
         if currencies:
             fiat_currencies = comma_separated_params_to_list(currencies)
         else:
-            fiat_currencies = Config.DEFAULT_CURRENCIES
+            fiat_currencies = config.currencies()
 
         for token in tokens:
             exchange_rates[token] = {}
@@ -98,4 +99,5 @@ def env():
     else:
         return jsonify({'message': 'ERROR: Unauthorized'}), 401
 
-app.run(host='0.0.0.0', port=5000, debug=False)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=False)
