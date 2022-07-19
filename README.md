@@ -12,11 +12,14 @@ This is a simple Rest API for caching fiat-conversion rates from a third-party A
 ## Installation
 
 ```bash
-# Activate the environment
+# Create a virtual environment
+python3 -m venv venv
+
+# Activate the virtual environment
 . venv/bin/activate
 
 # Install dependencies
-pip install
+pip install -r requirements.txt
 ```
 
 [ [Table of Contents](#table-of-contents) ]
