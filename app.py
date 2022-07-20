@@ -15,9 +15,7 @@ envdump = EnvironmentDump()
 
 app = Flask(__name__)
 redis_client = Redis(host=config.REDIS_HOST, port=config.REDIS_PORT,
-                     password=config.REDIS_PASSWORD, db=config.REDIS_DB)
-
-redis_client.set_response_callback('GET', lambda i: float(i) if i else 0)
+                     password=config.REDIS_PASSWORD, db=config.REDIS_DB, decode_responses=True)
 
 def redis_available():
     info = redis_client.info()
@@ -48,11 +46,21 @@ def make_storage_key(token, fiat):
     return f"{token}/{fiat}"
 
 def fetch_exchange_rate(token, fiat):
-    url = f"{config.THIRD_PARTY_URL}/{token}/{fiat}/"
+    url = f"{config.exchange_api()}/{token}/{fiat}/"
     headers = {'X-CoinAPI-Key' : config.THIRD_PARTY_KEY}
     response = requests.get(url, headers=headers)
     response_json = response.json()
-    return response_json['rate'] or 0
+    data = {}
+
+    if response:
+        data = {
+            'coin': response_json['asset_id_base'] or token,
+            'currency': response_json['asset_id_quote'] or fiat,
+            'rate': response_json['rate'],
+            'timestamp': response_json['time'],
+        }
+
+    return data
 
 # ROUTES
 
@@ -62,7 +70,7 @@ def index():
         'version': '0.0.1'
     })
 
-@app.route('/rates', methods=['GET', 'POST'])
+@app.route('/rates/', methods=['GET', 'POST'])
 def rates():
     headers = request.headers
     auth = headers.get('X-Api-Key')
@@ -72,8 +80,8 @@ def rates():
     else:
         exchange_rates = {}
         args = request.args
-        coins = args.get('coins')
-        currencies = args.get('currencies')
+        coins = args.get('coin') or args.get('coins')
+        currencies = args.get('currency') or args.get('currencies')
 
         if coins:
             tokens = comma_separated_params_to_list(coins)
@@ -89,20 +97,31 @@ def rates():
             exchange_rates[token] = {}
             for fiat in fiat_currencies:
                 key = make_storage_key(token, fiat)
-                rate = redis_client.get(key)
+                expires_key = f"{key}/expires"
+                unexpired = redis_client.get(expires_key)
+                data = redis_client.hgetall(key)
 
-                if not rate:
-                    rate = fetch_exchange_rate(token, fiat)
-                    redis_client.set(make_storage_key(token, fiat), rate, ex=config.TTL)
+                if not unexpired:
+                    data = fetch_exchange_rate(token, fiat)
+                    if bool(data):
+                        redis_client.set(expires_key, config.TTL, ex=config.TTL)
+                        redis_client.hset(name=make_storage_key(token, fiat), mapping=data)
+                    else:
+                        data = {}
 
-                exchange_rates[token][fiat] = rate
+                # Provide conversion rate in float
+                if bool(data):
+                    rate = data['rate']
+                    data['rate'] = float(rate) if rate else 0
+
+                exchange_rates[token][fiat] = data
 
         return jsonify({
             'data': exchange_rates,
             'timestamp': get_timestamp(),
-        }) 
+        })
 
-@app.route('/health', methods=['GET'])
+@app.route('/health/', methods=['GET'])
 def healthcheck():
     headers = request.headers
     auth = headers.get('X-Api-Key')
@@ -112,7 +131,7 @@ def healthcheck():
     else:
         return jsonify({'message': 'ERROR: Unauthorized'}), 401
 
-@app.route('/env', methods=['GET'])
+@app.route('/env/', methods=['GET'])
 def env():
     headers = request.headers
     auth = headers.get('X-Api-Key')
