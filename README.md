@@ -45,23 +45,26 @@ python3 app.py
 Create a `.env` file with the following keys defined:
 
 ```bash
-# Key used by x-api-key header to authorize protected routes:
+# Key used by x-api-key header to authorize protected routes - REQUIRED
 API_KEY=THIS_IS_MY_API_KEY
 
-# Redis authentication
-REDIS_AUTH=MY_REDIS_SECRET
+# Redis authentication - REQUIRED
+REDIS_PASSWORD=MY_REDIS_SECRET
 
-# Redis host (if not localhost)
+# Redis host (if not localhost) - OPTIONAL
 REDIS_HOST=domain.of.redis
 
-# Redis port (if not default)
+# Redis port (if not default) - OPTIONAL
 REDIS_PORT=6379
 
-# Third-party API KEY
-THIRD_PARTY_KEY = os.environ.get('THIRD_PARTY_KEY')
+# Redis db, defaults to 0
+REDIS_DB=0
 
-# Third-party API Base URL
-THIRD_PARTY_URL = 'https://api.coinlayer.com/' # Example
+# API KEY for rest.coinapi.io - REQUIRED
+THIRD_PARTY_KEY="xxxxxx-xxxx-xxxxxx-xxxxxxxxx-xxxxxxxx"
+
+# TTL for cached API queries (third-party), defaults to 3600 (1 hour) - OPTIONAL
+TTL = 3600
 ```
 
 [ [Table of Contents](#table-of-contents) ]
