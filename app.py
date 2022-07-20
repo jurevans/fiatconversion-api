@@ -91,8 +91,6 @@ def rates():
                 key = make_storage_key(token, fiat)
                 rate = redis_client.get(key)
 
-                print(f"{rate}")
-
                 if not rate:
                     rate = fetch_exchange_rate(token, fiat)
                     redis_client.set(make_storage_key(token, fiat), rate, ex=config.TTL)

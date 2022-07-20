@@ -63,7 +63,7 @@ REDIS_DB=0
 # API KEY for rest.coinapi.io - REQUIRED
 THIRD_PARTY_KEY="xxxxxx-xxxx-xxxxxx-xxxxxxxxx-xxxxxxxx"
 
-# TTL for cached API queries (third-party), defaults to 3600 (1 hour) - OPTIONAL
+# TTL for cached API queries (third-party), defaults to 7200 (2 hours) - OPTIONAL
 TTL = 3600
 ```
 

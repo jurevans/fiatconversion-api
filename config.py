@@ -3,7 +3,7 @@ from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
 
-TTL_ONE_HOUR = 3600
+TTL_TWO_HOURS = 7200
 
 class Config(object):
   def __init__(self):
@@ -16,7 +16,7 @@ class Config(object):
     self.REDIS_DB=os.environ.get('REDIS_DB') or 0
     self.THIRD_PARTY_KEY = os.environ.get('THIRD_PARTY_KEY')
     self.THIRD_PARTY_URL = 'https://rest.coinapi.io/v1/exchangerate'
-    self.TTL = os.environ.get('TTL') or TTL_ONE_HOUR
+    self.TTL = os.environ.get('TTL') or TTL_TWO_HOURS
 
   def tokens(self):
     return self.DEFAULT_TOKENS
