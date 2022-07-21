@@ -4,6 +4,7 @@
 import json
 import requests
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from redis import Redis
 from healthcheck import HealthCheck, EnvironmentDump
 from datetime import datetime
@@ -14,6 +15,7 @@ health = HealthCheck()
 envdump = EnvironmentDump()
 
 app = Flask(__name__)
+CORS(app, resources={r"/rates/*": {"origins": "*"}})
 redis_client = Redis(host=config.REDIS_HOST, port=config.REDIS_PORT,
                      password=config.REDIS_PASSWORD, db=config.REDIS_DB, decode_responses=True)
 
