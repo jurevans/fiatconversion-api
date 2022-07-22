@@ -88,7 +88,9 @@ Additionally, see `DEFAULTS` in `config.py` for setting default tokens, currenci
 
 **POST** Example with cURL
 
-_NOTE_ You can specify `coin` or `coins`, `currency` or `currencies` as the request parameters with similar effect.
+_NOTE_ You can specify `coin` or `coins`, `currency` or `currencies` as the `GET` request parameters with similar effect.
+
+_NOTE_ `POST` requests can also be sent as JSON data, passing `coins` and/or `currencies` as JSON parameters. Passing no arguments in a `POST` or `GET` will return the API default values.
 
 ```bash
 curl --request POST http://127.0.0.1:5000/rates --header "X-Api-Key:MY_SECRET_API_KEY" --data "coins=BTC,EUR&currencies=USD,EUR,YEN"

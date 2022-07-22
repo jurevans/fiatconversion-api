@@ -66,34 +66,43 @@ def fetch_exchange_rate(token, fiat):
 
 # ROUTES
 
-@app.route('/', methods=['GET'])
+@app.route('/', methods=['GET'], strict_slashes=False)
 def index():
     return jsonify({
         'version': '0.0.1'
     })
 
-@app.route('/rates/', methods=['GET', 'POST'])
+@app.route('/rates', methods=['GET', 'POST'], strict_slashes=False)
 def rates():
     headers = request.headers
     auth = headers.get('X-Api-Key')
+
+    tokens = []
+    fiat_currencies = []
 
     if not is_key_valid(auth):
         return jsonify({'message': 'ERROR: Unauthorized'}), 401
     else:
         exchange_rates = {}
-        args = request.args
-        coins = args.get('coin') or args.get('coins')
-        currencies = args.get('currency') or args.get('currencies')
 
-        if coins:
-            tokens = comma_separated_params_to_list(coins)
-        else:
-            tokens = config.tokens()
+        if request.is_json:
+            content = request.get_json()
 
-        if currencies:
-            fiat_currencies = comma_separated_params_to_list(currencies)
+            tokens = content['coins'] if 'coins' in content else []
+            fiat_currencies = content['currencies'] if 'currencies' in content else []
         else:
-            fiat_currencies = config.currencies()
+            args = request.args
+            coins = args.get('coin') or args.get('coins')
+            currencies = args.get('currency') or args.get('currencies')
+
+            if coins:
+                tokens = comma_separated_params_to_list(coins)
+
+            if currencies:
+                fiat_currencies = comma_separated_params_to_list(currencies)
+
+        tokens = tokens if tokens else config.tokens()
+        fiat_currencies = fiat_currencies if fiat_currencies else config.currencies()
 
         for token in tokens:
             exchange_rates[token] = {}
@@ -123,7 +132,7 @@ def rates():
             'timestamp': get_timestamp(),
         })
 
-@app.route('/health/', methods=['GET'])
+@app.route('/health', methods=['GET'], strict_slashes=False)
 def healthcheck():
     headers = request.headers
     auth = headers.get('X-Api-Key')
@@ -133,7 +142,7 @@ def healthcheck():
     else:
         return jsonify({'message': 'ERROR: Unauthorized'}), 401
 
-@app.route('/env/', methods=['GET'])
+@app.route('/env', methods=['GET'], strict_slashes=False)
 def env():
     headers = request.headers
     auth = headers.get('X-Api-Key')
