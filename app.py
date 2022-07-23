@@ -71,6 +71,13 @@ def verify_token(token=None):
     key = headers.get('X-Api-Key')
     return key == config.API_KEY
 
+@auth.error_handler
+def auth_error(status):
+    return jsonify({
+        'message': 'Access Denied',
+        'status': status
+    }), 401
+
 # ROUTES
 
 @app.route('/', methods=['GET'], strict_slashes=False)
