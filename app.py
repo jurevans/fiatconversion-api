@@ -1,18 +1,22 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-import json
-import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_httpauth import HTTPTokenAuth
 from redis import Redis
 from healthcheck import HealthCheck, EnvironmentDump
 from datetime import datetime
 from config import Config
 
+import json
+import requests
+
 config = Config()
 health = HealthCheck()
 envdump = EnvironmentDump()
+
+auth = HTTPTokenAuth(header={ 'X-API-Key': config.API_KEY } )
 
 app = Flask(__name__)
 CORS(app, resources={r"/rates/*": {"origins": "*"}})
@@ -30,9 +34,6 @@ def application_data():
             'git_repo': 'https://github.com/jurevans/fiatconversion-api'}
 
 envdump.add_section('application', application_data)
-
-def is_key_valid(key):
-    return key == config.API_KEY
 
 def comma_separated_params_to_list(param):
     result = []
@@ -64,93 +65,85 @@ def fetch_exchange_rate(token, fiat):
 
     return data
 
+@auth.verify_token
+def verify_token(token=None):
+    headers = request.headers
+    key = headers.get('X-Api-Key')
+    return key == config.API_KEY
+
 # ROUTES
 
 @app.route('/', methods=['GET'], strict_slashes=False)
+@auth.login_required
 def index():
     return jsonify({
         'version': '0.0.1'
     })
 
 @app.route('/rates', methods=['GET', 'POST'], strict_slashes=False)
+@auth.login_required
 def rates():
-    headers = request.headers
-    auth = headers.get('X-Api-Key')
-
     tokens = []
     fiat_currencies = []
+    exchange_rates = {}
 
-    if not is_key_valid(auth):
-        return jsonify({'message': 'ERROR: Unauthorized'}), 401
+    if request.is_json:
+        content = request.get_json()
+
+        tokens = content['coins'] if 'coins' in content else []
+        fiat_currencies = content['currencies'] if 'currencies' in content else []
     else:
-        exchange_rates = {}
+        args = request.args
+        coins = args.get('coin') or args.get('coins')
+        currencies = args.get('currency') or args.get('currencies')
 
-        if request.is_json:
-            content = request.get_json()
+        if coins:
+            tokens = comma_separated_params_to_list(coins)
 
-            tokens = content['coins'] if 'coins' in content else []
-            fiat_currencies = content['currencies'] if 'currencies' in content else []
-        else:
-            args = request.args
-            coins = args.get('coin') or args.get('coins')
-            currencies = args.get('currency') or args.get('currencies')
+        if currencies:
+            fiat_currencies = comma_separated_params_to_list(currencies)
 
-            if coins:
-                tokens = comma_separated_params_to_list(coins)
+    tokens = tokens if tokens else config.tokens()
+    fiat_currencies = fiat_currencies if fiat_currencies else config.currencies()
 
-            if currencies:
-                fiat_currencies = comma_separated_params_to_list(currencies)
+    for token in tokens:
+        exchange_rates[token] = {}
+        for fiat in fiat_currencies:
+            key = make_storage_key(token, fiat)
+            expires_key = f"{key}/expires"
+            unexpired = redis_client.get(expires_key)
+            data = redis_client.hgetall(key)
 
-        tokens = tokens if tokens else config.tokens()
-        fiat_currencies = fiat_currencies if fiat_currencies else config.currencies()
-
-        for token in tokens:
-            exchange_rates[token] = {}
-            for fiat in fiat_currencies:
-                key = make_storage_key(token, fiat)
-                expires_key = f"{key}/expires"
-                unexpired = redis_client.get(expires_key)
-                data = redis_client.hgetall(key)
-
-                if not unexpired:
-                    data = fetch_exchange_rate(token, fiat)
-                    if bool(data):
-                        redis_client.set(expires_key, config.TTL, ex=config.TTL)
-                        redis_client.hset(name=make_storage_key(token, fiat), mapping=data)
-                    else:
-                        data = {}
-
-                # Provide conversion rate in float
+            if not unexpired:
+                data = fetch_exchange_rate(token, fiat)
                 if bool(data):
-                    rate = data['rate']
-                    data['rate'] = float(rate) if rate else 0
+                    redis_client.set(expires_key, config.TTL, ex=config.TTL)
+                    redis_client.hset(name=make_storage_key(token, fiat), mapping=data)
+                else:
+                    data = {}
 
-                exchange_rates[token][fiat] = data
+            # Provide conversion rate in float
+            if bool(data):
+                rate = data['rate']
+                data['rate'] = float(rate) if rate else 0
 
-        return jsonify({
-            'data': exchange_rates,
-            'timestamp': get_timestamp(),
-        })
+            exchange_rates[token][fiat] = data
+
+    return jsonify({
+        'data': exchange_rates,
+        'timestamp': get_timestamp(),
+    })
 
 @app.route('/health', methods=['GET'], strict_slashes=False)
+@auth.login_required
 def healthcheck():
-    headers = request.headers
-    auth = headers.get('X-Api-Key')
+    return health.run()
 
-    if is_key_valid(auth):
-        return health.run()
-    else:
-        return jsonify({'message': 'ERROR: Unauthorized'}), 401
 
 @app.route('/env', methods=['GET'], strict_slashes=False)
+@auth.login_required
 def env():
-    headers = request.headers
-    auth = headers.get('X-Api-Key')
-
-    if is_key_valid(auth):
-        return envdump.run()
-    else:
-        return jsonify({'message': 'ERROR: Unauthorized'}), 401
+    return envdump.run()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
